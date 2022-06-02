@@ -1,0 +1,24 @@
+{
+  "sche_sys_conf": [
+    {
+      "login_hosts": ["10.100.19.36:22"],
+      "schedule_name": "slurm",
+      "schedule_id": 1,
+      "result_type": 0,
+      "command": [
+        {
+          "cmd": "sinfo",
+          "args": "",
+          "result_separator": "",
+          "command_id": 3,
+          "result_use_json": 1
+        }
+      ]
+    }
+  ],
+  "shell_info": {
+    "timeout": 3600,
+    "max_conn": 100,
+    "listen_step": 10
+  }
+}

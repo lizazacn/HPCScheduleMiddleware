@@ -1,0 +1,9 @@
+package Service
+
+const (
+	FAIL = 0
+	SUCCESS = 1
+	MAXIMUM_CONNECTIONS_EXECEEDED = 2
+	CONNECTION_ALREADY_EXISTS = 3
+)
+
