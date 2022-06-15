@@ -20,7 +20,7 @@ type Cli struct {
 	SshSession *ssh.Session     // SSH长连接客户端
 	Pipc       *DataChan        // 数据流通道
 	UploadTime time.Time        // 更新时间
-	ConnStatus bool				// 是否处于连接状态
+	ConnStatus bool             // 是否处于连接状态
 }
 
 // DataChan 数据通道结构体
@@ -208,6 +208,7 @@ func (c *Cli) Std() {
 				break
 			}
 		}
+		c.Close()
 		log.Println("用户当前长连接进程正确结束")
 	}(quitGo)
 	err = session.Shell()
@@ -273,7 +274,7 @@ func (c *Cli) Send(str string) (string, string) {
 
 // Close 关闭数据管道
 func (c Cli) Close() {
-	if c.SshSession != nil{
+	if c.SshSession != nil {
 		c.SshSession.Close()
 	}
 	c.sshClient.Close()

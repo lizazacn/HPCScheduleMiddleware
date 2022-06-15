@@ -1,26 +1,29 @@
 {
   "http": {
     "host": "127.0.0.1",
-    "port": 8080
+    "port": 8090
   },
   "rpc": {
     "host": "127.0.0.1",
-    "port": 8090
+    "port": 8091
   },
   "schedule": {
     "conf_path": "Conf/config.json"
   },
   "database": {
-    "status": false,
-    "db_type": 2,
+    "status": true,
+    "db_type": 1,
     "path": "test.db",
     "host": "localhost",
     "port": 3306,
-    "db_name": "slurm",
+    "db_name": "schedule",
     "username": "root",
-    "password": "123456"
+    "password": "123456",
+    "max_open_cons": 10,
+    "max_idle_cons": 10
   },
   "crontab": {
-    "status": false
+    "status": true,
+    "exec_interval": 1800
   }
 }
