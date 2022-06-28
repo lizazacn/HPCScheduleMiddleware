@@ -19,7 +19,48 @@
       "history_time_step": 600,
       "history_result_separator": "|",
       "history_result_type": 0,
-      "history_command": "sacct -p -X --format=\"jobid,jobname,partition,user,group,time,alloccpus,allocnodes,nodelist,state,submit,start,end,timelimit\" -S ",
+      "history_command": "sacct -a -p --group=yeesuan -X --format=\"jobid,jobname,partition,user,group,time,alloccpus,allocnodes,nodelist,state,submit,start,end,timelimit\" -S ",
+      "history_offset_command": "sacct -p -X --format=\"jobid,jobname,partition,user,group,time,alloccpus,allocnodes,nodelist,state,submit,start,end,timelimit\" -j ",
+      "history_to_sql": {
+        "cluster": "Cluster",
+        "job_id": "JobID",
+        "job_name": "JobName",
+        "job_account": "User",
+        "job_account_group": "Group",
+        "job_queue": "Partition",
+        "job_status": "State",
+        "job_use_nodes": "AllocNodes",
+        "job_node_list": "NodeList",
+        "job_use_cpus": "AllocCPUS",
+        "job_use_gpus": "",
+        "job_exec_command": "",
+        "job_submit_time": "Submit",
+        "job_start_time": "Start",
+        "job_end_time": "End",
+        "job_running_time": "Timelimit",
+        "job_work_dir": ""
+      }
+    },
+    {
+      "login_hosts": ["10.249.1.100:22"],
+      "schedule_name": "slurm",
+      "schedule_id": 2,
+      "command": [
+        {
+          "cmd": "sinfo",
+          "args": "",
+          "result_separator": "",
+          "command_id": 3,
+          "result_use_json": 1,
+          "result_type": 0
+        }
+      ],
+      "admin_user": "jnist",
+      "admin_password": "1234567890",
+      "history_time_step": 600,
+      "history_result_separator": "|",
+      "history_result_type": 0,
+      "history_command": "sacct -a -p -X --format=\"jobid,jobname,partition,user,group,time,alloccpus,allocnodes,nodelist,state,submit,start,end,timelimit\" -S ",
       "history_offset_command": "sacct -p -X --format=\"jobid,jobname,partition,user,group,time,alloccpus,allocnodes,nodelist,state,submit,start,end,timelimit\" -j ",
       "history_to_sql": {
         "cluster": "Cluster",

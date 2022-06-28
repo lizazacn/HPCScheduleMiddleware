@@ -14,10 +14,10 @@ import (
 	"time"
 )
 
-var SqlConnInfo *Dao.ConnInfo
+var SqlConnInfo Dao.SqlConner
 
 func Crontab() {
-	connInfo := &Dao.ConnInfo{
+	SqlConnData := Dao.SQLConnInfo{
 		User:        Conf.ServiceConfig.Database.Username,
 		Password:    Conf.ServiceConfig.Database.Password,
 		Host:        Conf.ServiceConfig.Database.Host,
@@ -25,9 +25,17 @@ func Crontab() {
 		DbName:      Conf.ServiceConfig.Database.DBName,
 		MaxIdleCons: Conf.ServiceConfig.Database.MaxIdleCons,
 		MaxOpenCons: Conf.ServiceConfig.Database.MaxOpenCons,
+		DBType:      Conf.ServiceConfig.Database.DBType,
+		DBPath:      Conf.ServiceConfig.Database.Path,
 	}
+	var connInfo Dao.SqlConner
+	if SqlConnData.DBType == 1 {
+		connInfo = Dao.NewMySqlConner(SqlConnData)
+	} else {
+		connInfo = Dao.NewSqliteConner(SqlConnData)
+	}
+	//var connInfo Dao.SqlConner = Dao.NewMySqlConner(SqlConnData)
 	SqlConnInfo = connInfo
-	connInfo.Init()
 	err := connInfo.CreateTable()
 	if err != nil {
 		log.Printf("创建数据表异常：%v", err)
@@ -41,22 +49,25 @@ func Crontab() {
 	lock.Done()
 }
 
+// 获取作业信息
 func getJob(username, password, path, ScheduleName, sessionId string, ScheduleID int) {
 	var CrontabTime = Conf.ServiceConfig.Crontab.ExecInterval
-	_, ConnID, err := Login(username, password, path, ScheduleName, sessionId, ScheduleID)
-	if err != nil {
-		return
-	}
+
 	var unEndJobIDList []string
 	ScheduleIdx := Conf.Config.ScheduleIDToIdx[ScheduleID]
 	Schedule := Conf.Config.ScheduleConfs[ScheduleIdx]
 	cmdStr := fmt.Sprintf("%s \"%s\"", Schedule.HistoryCommand, time.Now().Add(time.Duration(0-Schedule.HistoryTimeStep)*time.Minute).Format("2006-01-02T15:04:05"))
+relogin:
+	_, ConnID, err := Login(username, password, path, ScheduleName, sessionId, ScheduleID)
+	if err != nil {
+		return
+	}
 callback:
 	result, err := ShellClient.ShellConn.Send(ConnID, cmdStr)
 	if err != nil {
 		log.Println(err)
-		time.Sleep(time.Duration(CrontabTime) * time.Second)
-		goto callback
+		//time.Sleep(time.Duration(CrontabTime) * time.Second)
+		goto relogin
 	}
 	var offsetData = ""
 	if len(unEndJobIDList) > 0 {
@@ -124,54 +135,7 @@ callback:
 	goto callback
 }
 
-func DataSortJson(resultMap *[]map[string]interface{}, dataRelation *map[string]string, unEndJobIDList *[]string) error {
-	var jobDataList []map[string]interface{}
-
-	for _, m := range *resultMap {
-		var jobData = make(map[string]interface{})
-		for k, val := range *dataRelation {
-			jobData[k] = m[val]
-		}
-		if jobData["job_use_gpus"] == "" {
-			jobData["job_use_gpus"] = 0
-		}
-		if jobData["job_end_time"] == "Unknown" || jobData["job_end_time"] == "" {
-			*unEndJobIDList = append(*unEndJobIDList, jobData["job_id"].(string))
-		}
-		jobDataList = append(jobDataList, jobData)
-	}
-	err := SqlConnInfo.InsertDataTable(jobDataList)
-	if err != nil {
-		log.Println(err)
-		return err
-	}
-	return nil
-}
-
-func DataSortTable(resultMap *[]interface{}, dataRelation *map[string]string, unEndJobIDList *[]string) error {
-	var jobDataList []map[string]interface{}
-
-	for _, m := range *resultMap {
-		var jobData = make(map[string]interface{})
-		for k, val := range *dataRelation {
-			jobData[k] = m.(map[string]string)[val]
-		}
-		if jobData["job_use_gpus"] == "" {
-			jobData["job_use_gpus"] = 0
-		}
-		if jobData["job_end_time"] == "Unknown" || jobData["job_end_time"] == "" {
-			*unEndJobIDList = append(*unEndJobIDList, jobData["job_id"].(string))
-		}
-		jobDataList = append(jobDataList, jobData)
-	}
-	err := SqlConnInfo.InsertDataTable(jobDataList)
-	if err != nil {
-		log.Println(err)
-		return err
-	}
-	return nil
-}
-
+// DataSort 序列化作业信息
 func DataSort(resultMap interface{}, dataRelation *map[string]string, unEndJobIDList *[]string, scheduleId string) (error, interface{}) {
 	var jobDataList []map[string]interface{}
 	var lastJobData interface{}
@@ -194,7 +158,7 @@ func DataSort(resultMap interface{}, dataRelation *map[string]string, unEndJobID
 	if len(jobDataList) <= 0 {
 		return errors.New("未解析到数据！"), nil
 	}
-	err := SqlConnInfo.InsertDataTable(jobDataList)
+	err := SqlConnInfo.InsertAndUpdateDataTable(jobDataList)
 	if err != nil {
 		log.Printf("插入数据异常：%v", err)
 		return err, nil

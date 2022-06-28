@@ -4,10 +4,11 @@ import (
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
+	_ "github.com/mattn/go-sqlite3"
 	"log"
 )
 
-type ConnInfo struct {
+type MySqlConnInfo struct {
 	DriverName  string   //驱动名称
 	User        string   // 连接用户名
 	Password    string   // 连接密码
@@ -40,24 +41,35 @@ type JobInfo struct {
 	JobWorkDir      string `json:"job_work_dir" db:"job_work_dir"`           // 作业工作目录
 }
 
-func (connInfo *ConnInfo) Init() {
+func NewMySqlConner(connInfo SQLConnInfo) *MySqlConnInfo {
 	connInfo.DriverName = "mysql"
 	db, err := sqlx.Open(connInfo.DriverName, fmt.Sprintf("%s:%s@tcp(%s:%d)/%s", connInfo.User, connInfo.Password, connInfo.Host, connInfo.Port, connInfo.DbName))
 	if err != nil {
 		log.Println("打开时数据库连接失败")
-		return
+		return nil
 	}
 	db.SetMaxOpenConns(connInfo.MaxOpenCons)
 	db.SetMaxIdleConns(connInfo.MaxIdleCons)
 
 	err = db.Ping()
 	if err != nil {
-		return
+		return nil
 	}
 	connInfo.DBConn = db
+	return &MySqlConnInfo{
+		DriverName:  connInfo.DriverName,
+		DBConn:      connInfo.DBConn,
+		User:        connInfo.User,
+		Password:    connInfo.Password,
+		Host:        connInfo.Host,
+		Port:        connInfo.Port,
+		DbName:      connInfo.DbName,
+		MaxIdleCons: connInfo.MaxIdleCons,
+		MaxOpenCons: connInfo.MaxOpenCons,
+	}
 }
 
-func (connInfo *ConnInfo) CreateTable() error {
+func (connInfo *MySqlConnInfo) CreateTable() error {
 	sql := "CREATE TABLE IF NOT EXISTS `schedule_jobs` (\n\t`id` INT NOT NULL AUTO_INCREMENT COMMENT 'ID'," +
 		"\n\t`cluster` VARCHAR(60) NULL DEFAULT NULL COMMENT '集群名称'," +
 		"\n\t`schedule_id` VARCHAR(60) NULL DEFAULT NULL COMMENT '调度系统ID'," +
@@ -77,6 +89,8 @@ func (connInfo *ConnInfo) CreateTable() error {
 		"\n\t`job_end_time` VARCHAR(60) NULL DEFAULT NULL COMMENT '作业结束运行时间'," +
 		"\n\t`job_running_time` VARCHAR(60) NULL DEFAULT NULL COMMENT '作业运行时长'," +
 		"\n\t`job_work_dir` TEXT NULL DEFAULT NULL COMMENT '作业工作目录'," +
+		"\n\t`create_time` DATETIME NULL DEFAULT CURRENT_TIMESTAMP COMMENT '记录创建时间'," +
+		"\n\t`deleted_status` INT(11) NULL DEFAULT '0' COMMENT '记录删除状态'," +
 		"\n\tUNIQUE INDEX `UNIQUEKEY` (`job_id`, `schedule_id`) USING BTREE," +
 		"\n\tINDEX `key` (`id`)\n)\nCOLLATE='utf8_bin'\n;"
 	_, err := connInfo.DBConn.Exec(sql)
@@ -86,7 +100,7 @@ func (connInfo *ConnInfo) CreateTable() error {
 	return nil
 }
 
-func (connInfo *ConnInfo) InsertDataTable(Data interface{}) error {
+func (connInfo *MySqlConnInfo) InsertAndUpdateDataTable(Data interface{}) error {
 	sql := "INSERT INTO schedule_jobs(cluster,schedule_id," +
 		"job_id,job_name,job_account,job_account_group,job_queue," +
 		"job_status,job_use_nodes,job_node_list,job_use_cpus,job_use_gpus," +
@@ -103,16 +117,6 @@ func (connInfo *ConnInfo) InsertDataTable(Data interface{}) error {
 		"job_start_time=VALUES(job_start_time)," +
 		"job_end_time=VALUES(job_end_time)," +
 		"job_status=VALUES(job_status);"
-
-	_, err := connInfo.DBConn.NamedExec(sql, Data.([]map[string]interface{}))
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (connInfo *ConnInfo) UpdateDataTable(Data interface{}) error {
-	sql := "UPDATE schedule_jobs SETS WHERE;"
 
 	_, err := connInfo.DBConn.NamedExec(sql, Data.([]map[string]interface{}))
 	if err != nil {
