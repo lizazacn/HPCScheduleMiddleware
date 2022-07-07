@@ -54,14 +54,22 @@ func getJob(username, password, path, ScheduleName, sessionId string, ScheduleID
 	var CrontabTime = Conf.ServiceConfig.Crontab.ExecInterval
 
 	var unEndJobIDList []string
+	var loginCount int
 	ScheduleIdx := Conf.Config.ScheduleIDToIdx[ScheduleID]
 	Schedule := Conf.Config.ScheduleConfs[ScheduleIdx]
 	cmdStr := fmt.Sprintf("%s \"%s\"", Schedule.HistoryCommand, time.Now().Add(time.Duration(0-Schedule.HistoryTimeStep)*time.Minute).Format("2006-01-02T15:04:05"))
 relogin:
 	_, ConnID, err := Login(username, password, path, ScheduleName, sessionId, ScheduleID)
 	if err != nil {
-		return
+		loginCount++
+		if loginCount >= 5 {
+			log.Println("连续5次尝试建立连接失败，请检查连接信息和网络状态后重试！")
+			return
+		}
+		time.Sleep(3 * time.Minute)
+		goto relogin
 	}
+	loginCount = 0
 callback:
 	result, err := ShellClient.ShellConn.Send(ConnID, cmdStr)
 	if err != nil {
@@ -114,6 +122,7 @@ callback:
 		time.Sleep(time.Duration(CrontabTime) * time.Second)
 		goto callback
 	}
+	// 补偿回调信息
 	offsetResult, err := ProcssResult(offsetData, Schedule.HistoryResultSeparator)
 	if err != nil {
 		log.Println(err)
@@ -135,7 +144,7 @@ callback:
 	goto callback
 }
 
-// DataSort 序列化作业信息
+// DataSort 存储作业信息
 func DataSort(resultMap interface{}, dataRelation *map[string]string, unEndJobIDList *[]string, scheduleId string) (error, interface{}) {
 	var jobDataList []map[string]interface{}
 	var lastJobData interface{}

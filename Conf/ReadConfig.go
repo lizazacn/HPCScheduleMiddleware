@@ -57,8 +57,8 @@ type Command struct {
 	Cmd             string `json:"cmd"`              // 作业相关命令
 	Args            string `json:"args"`             // 强制性参数
 	ResultSeparator string `json:"result_separator"` // 结果分割符（根据某种格式分割结果数据）
-	CommandID       uint   `json:"command_id"`       // 调度系统命令类型（目前支持：1、交互式提交作业，2、后台提交作业，
-	//3、获取队列信息，4、获取当前用户正在运行的作业， 5、获取历史作业， 【1-5表示固定命令类型，6-10表示其它命令类型】）
+	CommandID       uint   `json:"command_id"`       // 调度系统命令（建议：1、交互式提交作业，2、后台提交作业，
+	//3、获取队列信息，4、获取当前用户正在运行的作业， 5、获取历史作业， 【1-5表示固定命令，6-10表示其它命令类型】）
 	ResultType    uint `json:"result_type"`     // 结果数据类型（0：表格结构，1：表示json结构，2：其它类型）默认值为2
 	ResultUseJson uint `json:"result_use_json"` // 结果是否使用json格式化输出（0：表示原样输出，1：表示格式化输出），当result_type为0时有效
 }

@@ -35,7 +35,7 @@ func Init(path string) {
 func Login(username, password, path, ScheduleName, sessionId string, ScheduleID int) (uint, string, error) {
 	if ScheduleName == "" && ScheduleID == 0 {
 		log.Printf("传递参数异常，调度系统名称和调度系统ID不能同时为空！")
-		return 0, "", nil
+		return 0, "", errors.New("传递参数异常，调度系统名称和调度系统ID不能同时为空！")
 	}
 	if ScheduleName != "" && ScheduleID == 0 {
 		scheIds := Conf.Config.ScheduleNameToId[ScheduleName]
@@ -66,18 +66,19 @@ func Login(username, password, path, ScheduleName, sessionId string, ScheduleID 
 	switch code {
 	case FAIL:
 		fmt.Println("Fail!")
-		break
+		return 0, "", errors.New("连接建立失败！")
 	case SUCCESS:
 		fmt.Println("Success!")
 		break
 	case MAXIMUM_CONNECTIONS_EXECEEDED:
 		fmt.Println("Maximum connections exceeded")
-		break
+		return 0, "", errors.New("Maximum connections exceeded!")
 	case CONNECTION_ALREADY_EXISTS:
 		fmt.Println("Connection already exists")
-		break
+		return 0, "", errors.New("Connection already exists!")
 	default:
 		fmt.Println("Fail!")
+		return 0, "", errors.New("连接建立失败！")
 	}
 	_, err = ShellClient.ShellConn.Send(strId, "cd "+path)
 	if err != nil {
